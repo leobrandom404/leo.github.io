@@ -1,0 +1,136 @@
+系统目录、服务、端口、注册：
+
+系统目录：
+
+C\Windows\System32\config中的SAM配置文件用来记录系统的密码，当系统启动时便会自动锁住，无法打开.
+
+
+可以使用EP系统找到未被上锁的SAM文件，提前拷贝一份，再将其删除，之后便可无需密码打开目标计算机，操作完成后再将SAM文件粘贴到原目录下即可。
+
+
+C\Windows\System32\drivers\etc下的hosts文件用来本机的域名解析，hosts文件优先级高于DNS，因此可以手动修改该文件，进行域名欺骗进行钓鱼，也可以通过木马文件污染目标机hosts文件来进行钓鱼。
+
+
+C盘的用户目录相当于linux的home文件，包含所有用户的家目录，存在敏感信息。
+
+
+服务：
+服务分为本机服务和网络服务。在Windows通过运行services.msc打开服务窗口查看服务列表，右键服务，属性，可以发现服务启动类型分为自动（开机自启动）、手动、禁用，依存关系说明该服务依靠哪个服务来启动，存在先后关系。可以使用nc安装服务后门，自启动反弹shell。
+
+
+常见的服务：
+web服务：网站服务
+dns服务：用来解析域名
+dhcp服务：用来分发IP
+邮件服务：上传接受邮件
+telnet服务：远程终端管理，Windows常用，明文传输，不安全，易被局域网窃听。
+ssh服务：远程终端管理，Linux常用，密文传输
+ftp服务：文件上传下载，明文传输
+smb服务：文件上传下载
+
+
+端口：
+通过IP地址+端口号来区分不同的服务。需要注意的是，端口并不是一一对应的，比如自己的电脑作为客户端访问一台www服务器时，www服务器使用80端口与我的电脑通信，但我的电脑可能使用比如3456这样的端口。
+
+
+固定端口：
+固定端口范围从0到1023，这些端口号一般固定分配给一些服务，比如21端口分配给FTP服务，25端口分配给SMTP（简单邮件传输协议）服务，80端口分配给HTTP服务，135端口分配给RPC（远程过程调用）服务等等。
+虽然固定端口并不是全部被使用的，但尽量不要使用固定端口。
+
+动态端口：
+动态端口的范围从1024到65535，这些端口号一般不固定分配给某个服务，也就是说许多服务都可以使用这些端口，只要运行的程序向系统提出访问网络的申请，那么系统就可以从端口号中分配一个供该程序使用。比如1024端口就是分配给第一个向系统发出申请的程序，在关闭程序进程后，就会释放所占用的端口号。
+不过，动态端口也常常被木马病毒程序所利用，如冰河默认连接端口是7626。
+
+防火墙能防木马吗？
+不能。防火墙是用来防流量的，但可以控制木马常用的端口，限制回连，来控制木马。
+
+
+常见端口：
+HTTP: 80/8080/3128/8081/9080
+FTP: 21
+Telnet: 23
+TFTP: 69/UDP
+SSH: 22/TCP
+SMTP(Simple Mail Transfer Protocol): 25/TCP
+POP3(Post Office Protocol): 110/TCP
+Tomcat: 8080
+Oracle: 1521
+SQL Server:1433/TCP 1433/UDP
+MySQL：3306
+WIN2003远程桌面：3389
+
+
+研究端口可以干什么：
+信息搜集
+判断服务
+判断系统
+
+
+注册表：
+注册表是Windows中的一个重要的核心数据库，可以通过注册表来对计算机进行任意修改。
+运行regedit打开注册表编辑器
+有五个根键，其中HKEY_LOCAL_MACHINE用于管理系统硬件配置，其中有SAM文件夹，可以将管理员目录下的文件内容复制给guest目录下的文件，使guest获得管理员权限。这种提权方式登陆后不会在C／用户目录下生成新的家目录，而是使用管理员的家目录，不留痕迹。
+HKEY_LOCAL_MACHINE下的SOFTMWARE下的Microsoft下的Windows下的CurrentVersion下的Run目录记录了计算机开机自动运行的相关配置。设置开机自动运行有两种方式，第一种是在开始菜单／程序／启动文件夹下添加配置文件，第二种是修改注册表，但前者容易被管理员发现，后者隐蔽性强。
+
+
+黑客常用的DOS命令：
+？      帮助
+color 改变cmd的颜色
+ping TTL=64一般为Linux系统，结果中的TTL=55说明经过了9个服务器，可以从TTL的值来判断是否被钓鱼
+ipconfig ／flushdns 刷新DNS解析缓存
+systeminfo 查看系统信息，打了什么补丁等等
+arp－a 查看ARP缓存表。局域网通信看的是MAC地址而不是IP地址，所以使用ARP协议，IP地址与MAC地址相对应，功能类似于DNS，ARP缓存表基本上是动态获取的，每5分钟记录一次。它是靠广播记录到本地的，可以不断发虚假广播进行ARP欺骗，比如伪装成网关，将其他MAC地址发的包查看或修改后发给网关，再伪装成目标MAC，让网关把回包发给自己，以此来进行中间人双向欺骗。
+net view  查看局域网内其他计算机名称
+shutdown －s －t 180 －c “YOU ARE HACKED”  弹出字符“YOU ARE HACKED”，180秒后自动关机
+shutdown －a 取消刚才设置的自动关机
+d： 进入D盘
+start www.baidu.com  打开百度网页
+copy con c：a.txt  写文件，写完之后Ctrl+Z
+type 等于cat
+md 创建目录
+rd 删除目录
+del 删除文件
+copy 复制文件
+move 移动文件
+tree 查看目录结构
+telnet 远程连接
+net use k: \\192.168.126.26\c$  将远程电脑192.168.126.26的c盘映射到自己电脑上，名字是k盘
+net start 查看系统开的服务
+net stop 停止某个服务
+net user 查看当前系统有哪些用户
+net user a 123 ／add 创建用户a密码123
+net user a 查看a的信息，所属组
+net localgroup administrators a ／add 把a添加到administrators组里
+net localgroup 查看当前系统有哪些组
+net localgroup administrators 查看administrators组
+net user a 12345 改密码
+net user a ／del 删除用户
+一般不建议直接创建用户，因为会留下记录。建议启用其他用户，如：
+net user guest ／active：yes 启用guest用户
+之后用net user guest 123设置一个密码，再用net localgroup administrators guest ／add添加到管理员组，以后使用guest用户登录即可
+net localgroup administrators guest ／del 将用户从组中删除
+net user guest ／active：no 禁用guest用户
+记得清楚痕迹，还原现场
+net share 查看电脑共享状态
+netstat －an 查看本机端口的侦听或连接状态
+at 21：58 shutdown －s －t 180 设置一个任务计划，21点58分延迟180秒自动关机
+at 查看当前
+任务计划at 1 ／del 删除标号为1的任务计划
+tasklist 显示进程列表
+taskkill ／f  ／im ／qqexe 关闭qq
+msg NOTICE Hello，you are hacked 弹出一个窗口，窗口标题为NOTICE内容为you are hacked
+
+
+批处理：
+批处理是把多个命令放到一个文件中，文件中的命令会被逐一执行，后缀名为.bat
+例如:
+copy con 123.bat
+net user hacker 123 /add
+net localgroup administrator hacker /add
+Ctrl+z
+Enter
+就可以创建一个批处理文件
+
+
+
+
